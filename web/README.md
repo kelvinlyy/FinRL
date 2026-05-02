@@ -20,6 +20,18 @@ Pick a strategy from the dropdown or enable **Compare all models** to overlay eq
 | `zscore_mr`          | Z-score < −entry → enter; Z-score > exit → flat                      |
 | `obv_ma_cross`       | OBV > SMA(OBV) and close > SMA(close) → invested                     |
 
+### Deep reinforcement learning (FinRL + Stable Baselines3)
+
+These use **`StockTradingEnv`** and **`DRLAgent`** like **`examples/FinRL_StockTrading_2026_2_train.py`**: indicators come from **`finrl.config.INDICATORS`** via **`FeatureEngineer`**. The calendar is split into **train** (first **`--drl-train-fraction`**) and **test**; charts show equity on the **test** slice only.
+
+| Id        | Algorithm | Notes                                       |
+| --------- | --------- | ------------------------------------------- |
+| `drl_ppo` | PPO       | Slow — trains each run unless you skip them |
+| `drl_a2c` | A2C       | Same pipeline                               |
+| `drl_sac` | SAC       | Same pipeline                               |
+
+**Defaults:** `python web/build_data.py` builds **rule strategies only** (fast). Add **`--include-drl-training`** to bundle DRL ids into the default strategy list, or pass **`--strategies ...,drl_ppo,...`** explicitly.
+
 Indicators that do not share price scale use the **Indicators** panel (`chart: "indicator"` in registry); Bollinger and Donchian bands plot on **price**.
 
 ## Folder layout
@@ -35,6 +47,7 @@ web/
     sma_crossover_simulation.py
     macd_crossover_simulation.py
     rule_strategy_simulations.py
+    drl_sb3_simulation.py
   build_data.py
   chart_series_for_json.py
   index.html
@@ -52,6 +65,7 @@ flowchart LR
   rules[rule_strategy_simulations_py]
   sma[sma_crossover_py]
   macd[macd_crossover_py]
+  drl[drl_sb3_py]
   engine[long_only_engine_py]
   ser[chart_series_for_json_py]
   json[data_json]
@@ -62,9 +76,11 @@ flowchart LR
   reg --> rules
   reg --> sma
   reg --> macd
+  reg --> drl
   sma --> engine
   macd --> engine
   rules --> engine
+  drl --> ser
   engine --> ser
   build[build_data_py] --> yahoo
   build --> ser
@@ -95,6 +111,7 @@ flowchart LR
 | `simulations/rule_strategy_simulations.py` | RSI / BB / ADX / Donchian / z-score / OBV rules       |
 | `simulations/sma_crossover_simulation.py`  | SMA crossover                                         |
 | `simulations/macd_crossover_simulation.py` | MACD crossover                                        |
+| `simulations/drl_sb3_simulation.py`       | SB3 train + rollout (`StockTradingEnv`, `DRLAgent`)   |
 | `data.sample.json`                         | Example **`shared`** + **`strategies`** shape         |
 
 ### Adding a strategy
@@ -109,15 +126,17 @@ From **repository root** (FinRL env):
 python web/build_data.py
 python web/build_data.py --strategies sma_crossover,rsi_mr,macd_crossover
 python web/build_data.py --strategies sma_crossover,macd_crossover --png
+python web/build_data.py --strategies sma_crossover,drl_ppo --drl-timesteps 8000
+python web/build_data.py --include-drl-training
 ```
 
-Common flags: **`--ticker`**, **`--start`**, **`--end`**, SMA (**`--short`** / **`--long`**), MACD (**`--macd-fast`** / **`--macd-slow`** / **`--macd-signal`**), **`--output-dir`**, **`--png`**.
+Common flags: **`--ticker`**, **`--start`**, **`--end`**, SMA (**`--short`** / **`--long`**), MACD (**`--macd-fast`** / **`--macd-slow`** / **`--macd-signal`**), DRL (**`--drl-train-fraction`**, **`--drl-timesteps`**, **`--drl-seed`**, **`--drl-initial-cash`**, **`--drl-hmax`**, **`--drl-commission`**), **`--include-drl-training`**, **`--output-dir`**, **`--png`**.
 
 **Default history:** **`--start 2023-01-01`** through **`--end` today** (local date).
 
 If the chart looks **too short**, **`web/data.json`** was built with a short window — rerun with your range.
 
-If the UI only shows **two** strategies, **`data.json`** is stale — regenerate without **`--strategies`** for all nine models.
+If the UI only shows **two** strategies, **`data.json`** is stale — regenerate without **`--strategies`** for all rule models (nine), or add DRL ids explicitly.
 
 **Import note:** `build_data.py` puts **`web/`** first on **`sys.path`** so **`web/simulations/`** is never shadowed by another **`simulations`** package at the repo root.
 

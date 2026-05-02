@@ -37,6 +37,8 @@ python -m pytest unit_tests/ -v
 
 Static Chart.js UI reads **`web/data.json`** from **`python web/build_data.py`** (see **`web/README.md`**). **`build_data.py`** prepends **`web/`** to **`sys.path`** before the repo root so **`web/simulations`** is imported reliably.
 
+Optional **`drl_ppo` / `drl_a2c` / `drl_sac`** strategies train Stable-Baselines3 agents via FinRL (**slow**); they are **excluded** from the default **`--strategies`** list unless you pass **`--include-drl-training`** or name them explicitly.
+
 ### Running the FinRL pipeline
 
 There is no long-running server to start. The core workflow is: **download data → feature engineer → build gym env → train DRL agent → test/trade**.

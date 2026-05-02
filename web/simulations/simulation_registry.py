@@ -1,7 +1,8 @@
 """
-Registered rule-based simulations for the web dashboard.
+Registered simulations for the web dashboard (rule-based + optional FinRL SB3 agents).
 
 To add a strategy: implement simulate_*(raw_df, **params), register in STRATEGIES.
+Set ``requires_training: True`` for slow SB3 strategies excluded from default ``build_data`` runs.
 """
 
 from __future__ import annotations
@@ -21,6 +22,7 @@ from simulations.rule_strategy_simulations import (
     simulate_rsi_mr,
     simulate_zscore_mean_reversion,
 )
+from simulations.drl_sb3_simulation import simulate_drl_sb3
 from simulations.sma_crossover_simulation import simulate_sma_crossover
 
 SimFn = Callable[..., tuple[pd.DataFrame, pd.Series, pd.Series]]
@@ -66,6 +68,27 @@ def _kw_zscore(kw: dict[str, Any]) -> dict[str, Any]:
 
 def _kw_obv(kw: dict[str, Any]) -> dict[str, Any]:
     return {"close_ma_window": kw["obv_price_ma"], "obv_ma_window": kw["obv_ma_window"]}
+
+
+def _kw_drl(kw: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "algorithm": kw["drl_algorithm"],
+        "train_fraction": kw["drl_train_fraction"],
+        "timesteps": kw["drl_timesteps"],
+        "seed": kw["drl_seed"],
+        "initial_amount": kw["drl_initial_amount"],
+        "hmax": kw["drl_hmax"],
+        "commission": kw["drl_commission"],
+    }
+
+
+def _kw_drl_algo(algo: str):
+    def fn(kw: dict[str, Any]) -> dict[str, Any]:
+        d = _kw_drl(kw)
+        d["algorithm"] = algo
+        return d
+
+    return fn
 
 
 STRATEGIES: dict[str, dict[str, Any]] = {
@@ -144,11 +167,35 @@ STRATEGIES: dict[str, dict[str, Any]] = {
             {"column": "obv_ma", "label": "OBV MA", "chart": _INDICATOR_CHART},
         ],
     },
+    # FinRL Stable-Baselines3 agents (train on first fraction of dates, test on remainder)
+    "drl_ppo": {
+        "label": "DRL PPO (SB3)",
+        "simulate": simulate_drl_sb3,
+        "build_kwargs": _kw_drl_algo("ppo"),
+        "chart_overlays": [{"column": "signal_long", "label": "Agent sign", "chart": _INDICATOR_CHART}],
+        "requires_training": True,
+    },
+    "drl_a2c": {
+        "label": "DRL A2C (SB3)",
+        "simulate": simulate_drl_sb3,
+        "build_kwargs": _kw_drl_algo("a2c"),
+        "chart_overlays": [{"column": "signal_long", "label": "Agent sign", "chart": _INDICATOR_CHART}],
+        "requires_training": True,
+    },
+    "drl_sac": {
+        "label": "DRL SAC (SB3)",
+        "simulate": simulate_drl_sb3,
+        "build_kwargs": _kw_drl_algo("sac"),
+        "chart_overlays": [{"column": "signal_long", "label": "Agent sign", "chart": _INDICATOR_CHART}],
+        "requires_training": True,
+    },
 }
 
 
-def list_strategy_ids() -> list[str]:
-    return list(STRATEGIES.keys())
+def list_strategy_ids(*, include_requires_training: bool = False) -> list[str]:
+    if include_requires_training:
+        return list(STRATEGIES.keys())
+    return [sid for sid, meta in STRATEGIES.items() if not meta.get("requires_training")]
 
 
 def default_build_kwargs() -> dict[str, Any]:
@@ -172,6 +219,13 @@ def default_build_kwargs() -> dict[str, Any]:
         "zscore_exit": 0.0,
         "obv_price_ma": 20,
         "obv_ma_window": 20,
+        "drl_algorithm": "ppo",
+        "drl_train_fraction": 0.65,
+        "drl_timesteps": 8000,
+        "drl_seed": 42,
+        "drl_initial_amount": 100_000.0,
+        "drl_hmax": 100,
+        "drl_commission": 0.001,
     }
 
 

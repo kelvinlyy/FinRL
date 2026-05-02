@@ -146,7 +146,6 @@ def _save_png_first(
 
 def main() -> None:
     web_dir = Path(__file__).resolve().parent
-    all_ids = list_strategy_ids()
     defaults = default_build_kwargs()
     default_end = date.today().isoformat()
 
@@ -181,9 +180,49 @@ def main() -> None:
     p.add_argument("--obv-price-ma", type=int, default=defaults["obv_price_ma"], dest="obv_price_ma")
     p.add_argument("--obv-ma-window", type=int, default=defaults["obv_ma_window"], dest="obv_ma_window")
     p.add_argument(
+        "--drl-train-fraction",
+        type=float,
+        default=defaults["drl_train_fraction"],
+        dest="drl_train_fraction",
+        help="Fraction of calendar days used for SB3 training (rest is rollout for charts)",
+    )
+    p.add_argument(
+        "--drl-timesteps",
+        type=int,
+        default=defaults["drl_timesteps"],
+        dest="drl_timesteps",
+        help="Stable-Baselines3 train timesteps per DRL strategy",
+    )
+    p.add_argument(
+        "--drl-seed",
+        type=int,
+        default=defaults["drl_seed"],
+        dest="drl_seed",
+        help="RNG seed for SB3 (None disables)",
+    )
+    p.add_argument(
+        "--drl-initial-cash",
+        type=float,
+        default=defaults["drl_initial_amount"],
+        dest="drl_initial_amount",
+        help="Initial portfolio cash for FinRL StockTradingEnv",
+    )
+    p.add_argument("--drl-hmax", type=int, default=defaults["drl_hmax"], dest="drl_hmax")
+    p.add_argument(
+        "--drl-commission",
+        type=float,
+        default=defaults["drl_commission"],
+        dest="drl_commission",
+    )
+    p.add_argument(
+        "--include-drl-training",
+        action="store_true",
+        help="Include drl_ppo/drl_a2c/drl_sac in default --strategies list (slow)",
+    )
+    p.add_argument(
         "--strategies",
-        default=",".join(all_ids),
-        help=f"Comma-separated ids (default: all). Available: {','.join(all_ids)}",
+        default=None,
+        help="Comma-separated ids (default: all rule strategies, or all+DRL if --include-drl-training)",
     )
     p.add_argument(
         "--output-dir",
@@ -193,10 +232,17 @@ def main() -> None:
     p.add_argument("--png", action="store_true", help="PNG preview for first strategy only")
     args = p.parse_args()
 
-    strategy_ids = [s.strip() for s in args.strategies.split(",") if s.strip()]
+    all_known = list_strategy_ids(include_requires_training=True)
+    default_bundle = list_strategy_ids(include_requires_training=args.include_drl_training)
+    if args.strategies is None:
+        strategy_csv = ",".join(default_bundle)
+    else:
+        strategy_csv = args.strategies
+
+    strategy_ids = [s.strip() for s in strategy_csv.split(",") if s.strip()]
     for sid in strategy_ids:
         if sid not in STRATEGIES:
-            raise SystemExit(f"Unknown strategy {sid}. Choose from {all_ids}")
+            raise SystemExit(f"Unknown strategy {sid}. Choose from {all_known}")
 
     out_dir = Path(args.output_dir).resolve() if args.output_dir else web_dir
     check_and_make_directories([str(out_dir)])
@@ -220,6 +266,13 @@ def main() -> None:
         "zscore_exit": args.zscore_exit,
         "obv_price_ma": args.obv_price_ma,
         "obv_ma_window": args.obv_ma_window,
+        "drl_algorithm": "ppo",
+        "drl_train_fraction": args.drl_train_fraction,
+        "drl_timesteps": args.drl_timesteps,
+        "drl_seed": args.drl_seed,
+        "drl_initial_amount": args.drl_initial_amount,
+        "drl_hmax": args.drl_hmax,
+        "drl_commission": args.drl_commission,
     }
 
     raw = YahooDownloader(
