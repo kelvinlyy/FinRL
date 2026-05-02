@@ -1,5 +1,7 @@
 # Custom config
-#results/
+
+# FinRL runtime outputs (created by scripts; do not commit)
+results/
 
 # remove DS_Store
 **/.DS_Store
@@ -109,7 +111,7 @@ celerybeat.pid
 
 # Environments
 # .env
-# .venv
+.venv
 # env/
 # venv/
 # ENV/
@@ -122,6 +124,9 @@ celerybeat.pid
 
 # Rope project settings
 .ropeproject
+
+# SMA chart site generated payload
+web/data.json
 
 # mkdocs documentation
 /site
