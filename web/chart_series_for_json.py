@@ -11,7 +11,7 @@ def dataframe_to_chart_series(
     df: pd.DataFrame,
     overlay_specs: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    """overlay_specs entries: column, label, chart optional ('price' default or 'macd')."""
+    """overlay_specs entries: column, label, chart optional ('price', 'indicator', or legacy 'macd')."""
     idx = df.index
     labels = [d.strftime("%Y-%m-%d") if hasattr(d, "strftime") else str(d) for d in idx]
 

@@ -2,7 +2,35 @@
  * Multi-strategy dashboard: reads data.json with shared + strategies, or legacy chart blob.
  */
 (function () {
-  const STRATEGY_COLORS = ["#3fb950", "#d29922", "#79c0ff", "#db61a2", "#a371f7"];
+  /** Distinct line color for strategy index `i` when comparing `total` models (even hue spacing). */
+  function perfStrategyColor(i, total) {
+    const n = Math.max(total, 1);
+    const hue = ((i * 360) / n) % 360;
+    return `hsl(${hue}, 72%, 58%)`;
+  }
+
+  /** Fallback palette when index matters less than hue rings */
+  const OVERLAY_PRICE_COLORS = [
+    "#58a6ff",
+    "#d2a8ff",
+    "#79c0ff",
+    "#ffa657",
+    "#56d364",
+    "#f0883e",
+    "#ff7b72",
+    "#e6edf3",
+  ];
+
+  const OVERLAY_INDICATOR_COLORS = [
+    "#58a6ff",
+    "#d29922",
+    "#8b949e",
+    "#79c0ff",
+    "#db61a2",
+    "#56d364",
+    "#f0883e",
+    "#a371f7",
+  ];
 
   const titleEl = document.getElementById("page-title");
   const metaEl = document.getElementById("page-meta");
@@ -11,6 +39,9 @@
   const compareAllCb = document.getElementById("compare-all");
   const macdWrap = document.getElementById("chartMacdWrap");
   const priceHeading = document.getElementById("price-heading");
+  const btnResetPrice = document.getElementById("reset-price-zoom");
+  const btnResetIndicator = document.getElementById("reset-indicator-zoom");
+  const btnResetPerf = document.getElementById("reset-perf-zoom");
 
   let chartPrice = null;
   let chartMacd = null;
@@ -55,6 +86,52 @@
     throw new Error("data.json missing chart or shared/strategies");
   }
 
+  /** Wheel/pinch zoom + drag pan on X axis (requires hammerjs + chartjs-plugin-zoom in index.html). */
+  function zoomPluginOptions() {
+    return {
+      zoom: {
+        limits: {
+          x: { min: "original", max: "original" },
+          y: { min: "original", max: "original" },
+        },
+        pan: {
+          enabled: true,
+          mode: "x",
+          modifierKey: null,
+        },
+        zoom: {
+          wheel: { enabled: true },
+          pinch: { enabled: true },
+          mode: "x",
+          drag: { enabled: false },
+        },
+      },
+    };
+  }
+
+  function mergeChartOptions(base, extraPlugins = {}) {
+    const zp = zoomPluginOptions();
+    return {
+      ...base,
+      plugins: {
+        ...base.plugins,
+        ...extraPlugins,
+        zoom: {
+          ...zp.zoom,
+          ...(extraPlugins.zoom || {}),
+        },
+      },
+    };
+  }
+
+  function bindReset(btn, chartGetter) {
+    if (!btn) return;
+    btn.onclick = () => {
+      const ch = chartGetter();
+      if (ch && typeof ch.resetZoom === "function") ch.resetZoom();
+    };
+  }
+
   const commonOptions = {
     responsive: true,
     maintainAspectRatio: false,
@@ -67,14 +144,20 @@
             const v = ctx.parsed.y;
             if (v == null) return ctx.dataset.label + ": n/a";
             const canvasId = ctx.chart.canvas.id;
-            const money = canvasId === "chartPerf";
+            if (canvasId === "chartPerf") {
+              return (
+                ctx.dataset.label +
+                ": $" +
+                v.toLocaleString(undefined, { maximumFractionDigits: 0 })
+              );
+            }
             return (
               ctx.dataset.label +
-              ": $" +
-              v.toLocaleString(
-                undefined,
-                money ? { maximumFractionDigits: 0 } : { minimumFractionDigits: 2, maximumFractionDigits: 4 },
-              )
+              ": " +
+              Number(v).toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 4,
+              })
             );
           },
         },
@@ -117,7 +200,9 @@
     if (!strat) return;
 
     const priceOverlays = (strat.overlay_series || []).filter((s) => (s.chart || "price") === "price");
-    const macdOverlays = (strat.overlay_series || []).filter((s) => s.chart === "macd");
+    const indicatorOverlays = (strat.overlay_series || []).filter(
+      (s) => s.chart === "indicator" || s.chart === "macd",
+    );
 
     const priceDatasets = [
       {
@@ -132,11 +217,10 @@
       },
     ];
     priceOverlays.forEach((s, i) => {
-      const colors = ["#58a6ff", "#d2a8ff", "#79c0ff", "#ffa657"];
       priceDatasets.push({
         label: s.label,
         data: s.data,
-        borderColor: colors[i % colors.length],
+        borderColor: OVERLAY_PRICE_COLORS[i % OVERLAY_PRICE_COLORS.length],
         borderWidth: 1.5,
         pointRadius: 0,
         tension: 0.15,
@@ -146,22 +230,22 @@
 
     if (priceHeading) {
       priceHeading.textContent =
-        macdOverlays.length && priceOverlays.length === 0 ? "Price" : "Price & overlays";
+        indicatorOverlays.length && priceOverlays.length === 0 ? "Price" : "Price & overlays";
     }
 
     chartPrice = new Chart(document.getElementById("chartPrice"), {
       type: "line",
       data: { labels: shared.labels, datasets: priceDatasets },
-      options: commonOptions,
+      options: mergeChartOptions(commonOptions),
     });
+    bindReset(btnResetPrice, () => chartPrice);
 
-    if (macdOverlays.length) {
+    if (indicatorOverlays.length) {
       macdWrap.classList.remove("hidden");
-      const macdColors = ["#58a6ff", "#d29922", "#8b949e"];
-      const macdDatasets = macdOverlays.map((s, i) => ({
+      const macdDatasets = indicatorOverlays.map((s, i) => ({
         label: s.label,
         data: s.data,
-        borderColor: macdColors[i % macdColors.length],
+        borderColor: OVERLAY_INDICATOR_COLORS[i % OVERLAY_INDICATOR_COLORS.length],
         borderWidth: 1.5,
         pointRadius: 0,
         tension: 0.12,
@@ -170,8 +254,9 @@
       chartMacd = new Chart(document.getElementById("chartMacd"), {
         type: "line",
         data: { labels: shared.labels, datasets: macdDatasets },
-        options: commonOptions,
+        options: mergeChartOptions(commonOptions),
       });
+      bindReset(btnResetIndicator, () => chartMacd);
     } else {
       macdWrap.classList.add("hidden");
     }
@@ -181,8 +266,8 @@
       perfDatasets = ids.map((id, i) => ({
         label: strategies[id].label || id,
         data: strategies[id].portfolio_value,
-        borderColor: STRATEGY_COLORS[i % STRATEGY_COLORS.length],
-        borderWidth: 1.5,
+        borderColor: perfStrategyColor(i, ids.length),
+        borderWidth: 2,
         pointRadius: 0,
         tension: 0.12,
         spanGaps: true,
@@ -222,14 +307,15 @@
     chartPerf = new Chart(document.getElementById("chartPerf"), {
       type: "line",
       data: { labels: shared.labels, datasets: perfDatasets },
-      options: {
+      options: mergeChartOptions({
         ...commonOptions,
         scales: {
           x: commonOptions.scales.x,
           y: perfMoneyAxis(),
         },
-      },
+      }),
     });
+    bindReset(btnResetPerf, () => chartPerf);
   }
 
   function readHashStrategy() {

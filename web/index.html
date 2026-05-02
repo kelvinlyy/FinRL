@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Rule strategy charts</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.2.0/dist/chartjs-plugin-zoom.min.js"></script>
   <style>
     :root {
       font-family: system-ui, sans-serif;
@@ -60,10 +62,36 @@
       padding: 0.75rem 1rem 1rem;
       margin-bottom: 1rem;
     }
-    .panel h2 {
+    .panel-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .panel-header h2 {
       font-size: 0.95rem;
-      margin: 0 0 0.5rem;
+      margin: 0;
       color: #58a6ff;
+    }
+    .chart-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      align-items: center;
+    }
+    .chart-actions button {
+      background: #21262d;
+      color: #c9d1d9;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 0.25rem 0.5rem;
+      font-size: 0.75rem;
+      cursor: pointer;
+    }
+    .chart-actions button:hover {
+      background: #30363d;
     }
     .panel.hidden {
       display: none;
@@ -91,16 +119,34 @@
       Compare all models on performance chart
     </label>
   </div>
+  <p class="meta" id="zoom-hint" style="margin-top: -0.5rem">
+    Charts: mouse wheel zooms horizontally; drag to pan. Reset per chart below.
+  </p>
   <div class="panel">
-    <h2 id="price-heading">Price &amp; overlays</h2>
+    <div class="panel-header">
+      <h2 id="price-heading">Price &amp; overlays</h2>
+      <div class="chart-actions">
+        <button type="button" id="reset-price-zoom" title="Reset chart zoom">Reset zoom</button>
+      </div>
+    </div>
     <canvas id="chartPrice" aria-label="Price chart"></canvas>
   </div>
   <div class="panel hidden" id="chartMacdWrap">
-    <h2>MACD</h2>
-    <canvas id="chartMacd" aria-label="MACD chart"></canvas>
+    <div class="panel-header">
+      <h2>Indicators</h2>
+      <div class="chart-actions">
+        <button type="button" id="reset-indicator-zoom" title="Reset chart zoom">Reset zoom</button>
+      </div>
+    </div>
+    <canvas id="chartMacd" aria-label="Indicator chart"></canvas>
   </div>
   <div class="panel">
-    <h2>Portfolio performance</h2>
+    <div class="panel-header">
+      <h2>Portfolio performance</h2>
+      <div class="chart-actions">
+        <button type="button" id="reset-perf-zoom" title="Reset chart zoom">Reset zoom</button>
+      </div>
+    </div>
     <canvas id="chartPerf" aria-label="Portfolio performance"></canvas>
   </div>
   <script src="app.js"></script>
