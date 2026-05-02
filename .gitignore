@@ -1,5 +1,9 @@
 # Custom config
-#results/
+
+# FinRL run outputs (keep results/README.md + results/.gitkeep only)
+results/**
+!results/.gitkeep
+!results/README.md
 
 # remove DS_Store
 **/.DS_Store
@@ -122,6 +126,9 @@ celerybeat.pid
 
 # Rope project settings
 .ropeproject
+
+# SMA chart site generated payload
+web/data.json
 
 # mkdocs documentation
 /site

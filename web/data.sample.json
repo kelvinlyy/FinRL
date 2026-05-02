@@ -1,0 +1,29 @@
+{
+  "meta": {
+    "title": "AAPL SMA 20/50 — 2023-01-01 to 2023-06-01",
+    "note": "Hover for values; click legend entries to show/hide series.",
+    "ticker": "AAPL",
+    "start": "2023-01-01",
+    "end": "2023-06-01",
+    "short_window": 20,
+    "long_window": 50
+  },
+  "chart": {
+    "labels": ["2023-01-03", "2023-01-04"],
+    "close": [125.5, 126.2],
+    "portfolio_value": [100000.0, 100050.0],
+    "buy_hold_value": [100000.0, 100057.57],
+    "sma_series": [
+      {
+        "key": "sma_20",
+        "label": "SMA 20",
+        "data": [null, null]
+      },
+      {
+        "key": "sma_50",
+        "label": "SMA 50",
+        "data": [null, null]
+      }
+    ]
+  }
+}

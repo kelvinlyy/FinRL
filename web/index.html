@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SMA crossover charts</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      font-family: system-ui, sans-serif;
+      background: #0f1419;
+      color: #e6edf3;
+    }
+    body {
+      margin: 0;
+      padding: 1rem 1.25rem 2rem;
+      max-width: 1200px;
+      margin-inline: auto;
+    }
+    h1 {
+      font-size: 1.15rem;
+      font-weight: 600;
+      margin-bottom: 0.35rem;
+    }
+    p.meta {
+      margin: 0 0 1rem;
+      font-size: 0.85rem;
+      color: #8b949e;
+    }
+    .panel {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 0.75rem 1rem 1rem;
+      margin-bottom: 1rem;
+    }
+    .panel h2 {
+      font-size: 0.95rem;
+      margin: 0 0 0.5rem;
+      color: #58a6ff;
+    }
+    canvas {
+      max-height: 380px;
+    }
+  </style>
+</head>
+<body>
+  <h1 id="page-title">SMA crossover charts</h1>
+  <p id="page-meta" class="meta">
+    Hover for values; click legend entries to show/hide series. Serve via HTTP so data.json loads (see README).
+  </p>
+  <div class="panel">
+    <h2>Price &amp; moving averages</h2>
+    <canvas id="chartPrice" aria-label="Price and SMA"></canvas>
+  </div>
+  <div class="panel">
+    <h2>Portfolio performance</h2>
+    <canvas id="chartPerf" aria-label="Portfolio performance"></canvas>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
