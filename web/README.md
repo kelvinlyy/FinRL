@@ -22,7 +22,7 @@ Pick a strategy from the dropdown or enable **Compare all models** to overlay eq
 
 ### Deep reinforcement learning (FinRL + Stable Baselines3)
 
-These use **`StockTradingEnv`** and **`DRLAgent`** like **`examples/FinRL_StockTrading_2026_2_train.py`**: indicators come from **`finrl.config.INDICATORS`** via **`FeatureEngineer`**. The calendar is split into **train** (first **`--drl-train-fraction`**) and **test**; charts show equity on the **test** slice only.
+These use **`StockTradingEnv`** and **`DRLAgent`** like **`examples/FinRL_StockTrading_2026_2_train.py`**: indicators come from **`finrl.config.INDICATORS`** via **`FeatureEngineer`**. The calendar is split into **train** (first **`--drl-train-fraction`**) and **test**; the agent equity curve is recorded on the **test** slice and **padded** at **`initial_amount`** on train days so **`data.json`** stays aligned when mixed with rule strategies.
 
 | Id        | Algorithm | Notes                                       |
 | --------- | --------- | ------------------------------------------- |

@@ -33,7 +33,7 @@ def _yahoo_raw_to_processed(df_raw: pd.DataFrame, ticker_upper: bool = True) -> 
 def _split_by_calendar_dates(
     processed: pd.DataFrame,
     train_fraction: float,
-) -> tuple[pd.DataFrame, pd.DataFrame]:
+) -> tuple[pd.DataFrame, pd.DataFrame, list[pd.Timestamp], int]:
     proc = processed.copy()
     proc["_cal"] = pd.to_datetime(proc["date"]).dt.normalize()
     dates = sorted(proc["_cal"].unique())
@@ -51,7 +51,7 @@ def _split_by_calendar_dates(
         raise ValueError(
             "Train/test split produced too few rows; increase date range or adjust train_fraction."
         )
-    return train_df, trade_df
+    return train_df, trade_df, dates
 
 
 def _reindex_by_trading_day(df: pd.DataFrame) -> pd.DataFrame:
@@ -84,7 +84,11 @@ def simulate_drl_sb3(
     indicators = tech_indicator_list if tech_indicator_list is not None else list(INDICATORS)
 
     processed = _yahoo_raw_to_processed(df_raw)
-    train_df, trade_df = _split_by_calendar_dates(processed, train_fraction)
+    proc_cal = processed.copy()
+    proc_cal["_cal"] = pd.to_datetime(proc_cal["date"]).dt.normalize()
+    full_close_by_day = proc_cal.groupby("_cal", sort=True)["close"].first()
+
+    train_df, trade_df, calendar_dates = _split_by_calendar_dates(processed, train_fraction)
     train_df = _reindex_by_trading_day(train_df)
     trade_df = _reindex_by_trading_day(trade_df)
 
@@ -124,17 +128,8 @@ def simulate_drl_sb3(
         )
 
     df_account_value = df_account_value.sort_values("date").reset_index(drop=True)
-    dates = pd.to_datetime(df_account_value["date"])
+    dates = pd.to_datetime(df_account_value["date"]).dt.normalize()
     account_values = df_account_value["account_value"].astype(float)
-
-    trade_close = trade_df.sort_values(["date", "tic"]).drop_duplicates("date")[["date", "close"]].copy()
-    trade_close["date"] = pd.to_datetime(trade_close["date"])
-    merged = pd.DataFrame({"date": dates}).merge(trade_close, on="date", how="left")
-    close = merged["close"].astype(float)
-
-    first_close = float(close.iloc[0])
-    bh_shares = float(initial_amount) / (first_close * (1 + commission))
-    buy_hold = close * bh_shares
 
     sig_vals: list[int] = []
     if df_actions is not None and len(df_actions) > 0 and stock_dim == 1:
@@ -159,18 +154,30 @@ def simulate_drl_sb3(
         sig_vals.insert(0, 0)
     sig_vals = sig_vals[: len(dates)]
 
-    idx = pd.DatetimeIndex(dates)
-    sig_s = pd.Series(sig_vals[: len(idx)], index=idx, name="signal_long")
-    pv_s = pd.Series(account_values.values[: len(idx)], index=idx, name="strategy")
-    bh_s = pd.Series(buy_hold.values[: len(idx)], index=idx, name="buy_hold")
+    idx_test = pd.DatetimeIndex(dates)
+    sig_test = pd.Series(sig_vals[: len(idx_test)], index=idx_test, name="signal_long")
+    pv_test = pd.Series(account_values.values[: len(idx_test)], index=idx_test, name="strategy")
+    # Pad to full Yahoo window so mixed builds align `shared.labels` with rule strategies.
+    full_idx = pd.DatetimeIndex(pd.to_datetime(calendar_dates)).normalize()
+    close_full = full_close_by_day.reindex(full_idx).astype(float).values
+    first_close_global = float(close_full[np.isfinite(close_full)][0])
+    bh_shares_global = float(initial_amount) / (first_close_global * (1 + commission))
+    buy_hold_full = close_full * bh_shares_global
+
+    pv_map = {idx_test[k]: float(pv_test.iloc[k]) for k in range(len(idx_test))}
+    sig_map = {idx_test[k]: float(sig_test.iloc[k]) for k in range(len(idx_test))}
+    pv_full = np.array([pv_map.get(d, float(initial_amount)) for d in full_idx], dtype=float)
+    sig_full = np.array([sig_map.get(d, 0.0) for d in full_idx], dtype=float)
 
     out = pd.DataFrame(
         {
-            "close": close.values[: len(idx)],
-            "signal_long": sig_s.values,
-            "portfolio_value": pv_s.values,
-            "buy_hold_value": bh_s.values,
+            "close": close_full,
+            "signal_long": sig_full,
+            "portfolio_value": pv_full,
+            "buy_hold_value": buy_hold_full,
         },
-        index=idx,
+        index=full_idx,
     )
+    pv_s = pd.Series(pv_full, index=full_idx, name="strategy")
+    bh_s = pd.Series(buy_hold_full, index=full_idx, name="buy_hold")
     return out, pv_s, bh_s
