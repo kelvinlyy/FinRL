@@ -1,11 +1,12 @@
 # Rule-strategy chart site (static)
 
-Interactive charts use [Chart.js](https://www.chartjs.org/) (CDN) and load `**data.json**` produced by `**build_data.py**`.
+Interactive charts use [Chart.js](https://www.chartjs.org/) (CDN) and load **`data.json`** produced by **`build_data.py`**.
 
-Pick a strategy from the dropdown or enable **Compare all models** to overlay equity curves. `**shared.buy_hold_value`** is the same for every strategy on the same history; `**portfolio_value**` differs by rule.
+Pick a strategy from the dropdown or enable **Compare all models** to overlay equity curves. **`shared.buy_hold_value`** is the same for every strategy on the same history; **`portfolio_value`** differs by rule.
+
+**SMA crossover vs MACD crossover are different rules** — equity curves **will not match**. Buy-and-hold is identical for the same calendar and commissions.
 
 ## Built-in strategies (`simulations/simulation_registry.py`)
-
 
 | Id                   | Rule (long-only, simplified)                                         |
 | -------------------- | -------------------------------------------------------------------- |
@@ -19,17 +20,16 @@ Pick a strategy from the dropdown or enable **Compare all models** to overlay eq
 | `zscore_mr`          | Z-score < −entry → enter; Z-score > exit → flat                      |
 | `obv_ma_cross`       | OBV > SMA(OBV) and close > SMA(close) → invested                     |
 
-
 Indicators that do not share price scale use the **Indicators** panel (`chart: "indicator"` in registry); Bollinger and Donchian bands plot on **price**.
 
 ## Folder layout
 
 ```
 web/
-  simulations/           ← all Python simulations live here
-    __init__.py          exports registry helpers
+  simulations/
+    __init__.py
     simulation_registry.py
-    data_prep.py         shared YahooDownloader OHLCV → date-indexed series
+    data_prep.py
     long_only_engine.py
     technicals.py
     sma_crossover_simulation.py
@@ -48,7 +48,7 @@ web/
 flowchart LR
   yahoo[YahooDownloader]
   raw[OHLC_DataFrame]
-  reg[simulations_registry_py]
+  reg[simulation_registry_py]
   rules[rule_strategy_simulations_py]
   sma[sma_crossover_py]
   macd[macd_crossover_py]
@@ -72,31 +72,34 @@ flowchart LR
   json --> browser
 ```
 
+1. **`build_data.py`** downloads daily bars via **`YahooDownloader`**.
+2. **`simulation_registry.py`** maps strategy ids to **`simulate_*`** functions.
+3. Each simulation returns a DataFrame (close, overlays, **`portfolio_value`**, **`buy_hold_value`**).
+4. **`chart_series_for_json.py`** builds **`overlay_series`** (price vs indicator/`macd` panes).
+5. **`data.json`**: **`meta`**, **`shared`** (labels, close, buy-and-hold), **`strategies`** (overlays + **`portfolio_value`** per model).
+6. **`app.js`** reads **`data.json`** (still accepts legacy single-**`chart`** payloads).
 
-
-## Contents (web root vs simulations/)
-
+## Contents (web root vs `simulations/`)
 
 | Path                                       | Role                                                  |
 | ------------------------------------------ | ----------------------------------------------------- |
 | `index.html`                               | Shell + strategy toolbar                              |
-| `app.js`                                   | Fetch `**data.json**`, selector + compare-all         |
-| `build_data.py`                            | CLI; `**--strategies**` + indicator params            |
-| `chart_series_for_json.py`                 | DataFrame → JSON (`**overlay_series**`)               |
+| `app.js`                                   | Fetch **`data.json`**, selector + compare-all + zoom   |
+| `build_data.py`                            | CLI; **`--strategies`** + indicator params            |
+| `chart_series_for_json.py`                 | DataFrame → JSON (**`overlay_series`**)               |
 | `simulations/__init__.py`                  | Package exports                                       |
-| `simulations/simulation_registry.py`       | `**STRATEGIES**` + `**default_build_kwargs**`         |
+| `simulations/simulation_registry.py`       | **`STRATEGIES`** + **`default_build_kwargs`**          |
 | `simulations/data_prep.py`                 | Shared OHLCV normalization                            |
-| `simulations/long_only_engine.py`          | Signal → `**portfolio_value**` / `**buy_hold_value**` |
+| `simulations/long_only_engine.py`          | Signal → **`portfolio_value`** / **`buy_hold_value`** |
 | `simulations/technicals.py`                | RSI, BB, ADX/DI, Donchian, OBV, z-score               |
 | `simulations/rule_strategy_simulations.py` | RSI / BB / ADX / Donchian / z-score / OBV rules       |
 | `simulations/sma_crossover_simulation.py`  | SMA crossover                                         |
 | `simulations/macd_crossover_simulation.py` | MACD crossover                                        |
-| `data.sample.json`                         | Example `**shared**` + `**strategies**` shape         |
-
+| `data.sample.json`                         | Example **`shared`** + **`strategies`** shape         |
 
 ### Adding a strategy
 
-Implement `**simulate_***` under `**web/simulations/**`, register in `**simulation_registry.py**` (`label`, `build_kwargs`, `chart_overlays`), and extend `**default_build_kwargs**` / `**build_data.py**` CLI if new parameters are needed.
+Implement **`simulate_*`** under **`web/simulations/`**, register in **`simulation_registry.py`** (`label`, `build_kwargs`, `chart_overlays`), and extend **`default_build_kwargs`** / **`build_data.py`** CLI if new parameters are needed.
 
 ## Generate `data.json`
 
@@ -105,13 +108,16 @@ From **repository root** (FinRL env):
 ```bash
 python web/build_data.py
 python web/build_data.py --strategies sma_crossover,rsi_mr,macd_crossover
+python web/build_data.py --strategies sma_crossover,macd_crossover --png
 ```
 
-**Default history:** **`--start 2023-01-01`** through **`--end` today** (local date). Override anytime, e.g. `python web/build_data.py --start 2020-01-01 --end 2026-12-31`.
+Common flags: **`--ticker`**, **`--start`**, **`--end`**, SMA (**`--short`** / **`--long`**), MACD (**`--macd-fast`** / **`--macd-slow`** / **`--macd-signal`**), **`--output-dir`**, **`--png`**.
 
-If the chart looks **too short**, **`web/data.json`** was probably built with a tiny test window — rerun **`python web/build_data.py`** with the range you want.
+**Default history:** **`--start 2023-01-01`** through **`--end` today** (local date).
 
-If the UI only shows **two** strategies, **`data.json`** is stale from an older **`--strategies …`** run — regenerate without **`--strategies`** for all nine models.
+If the chart looks **too short**, **`web/data.json`** was built with a short window — rerun with your range.
+
+If the UI only shows **two** strategies, **`data.json`** is stale — regenerate without **`--strategies`** for all nine models.
 
 **Import note:** `build_data.py` puts **`web/`** first on **`sys.path`** so **`web/simulations/`** is never shadowed by another **`simulations`** package at the repo root.
 
@@ -126,8 +132,7 @@ Open **[http://localhost:8765](http://localhost:8765)** (`#strategy=sma_crossove
 
 ## Notes
 
-- **Zoom / pan:** Wheel zooms along the **time (x) axis**; drag to pan. Use **Reset zoom** on each chart panel. Loaded scripts: Chart.js, Hammer.js, `chartjs-plugin-zoom` (CDN).
-- **`results/`** is FinRL’s runtime folder (not used here).
+- **Zoom / pan:** Wheel zooms along the **time (x) axis**; drag to pan. Use **Reset zoom** per chart. Scripts: Chart.js, Hammer.js, `chartjs-plugin-zoom` (CDN).
+- **`results/`** at repo root is FinRL’s runtime output; not used by this site.
 - **`data.json`** is gitignored.
 - Chart.js loads from jsDelivr unless vendored under **`web/vendor/`**.
-
