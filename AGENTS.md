@@ -33,10 +33,6 @@ python -m pytest unit_tests/ -v
 - `test_alpaca_downloader.py` — requires Alpaca API keys (`ALPACA_API_KEY`, `ALPACA_API_SECRET`) which are not configured; these tests always fail without real credentials.
 - `test_core.py::test_download_large` — asserts an exact row count from Yahoo Finance that drifts as tickers are delisted/added (e.g., WBA was removed from DOW 30).
 
-### Web dashboard (`web/`)
-
-Static Chart.js UI reads **`web/data.json`** from **`python web/build_data.py`** (see **`web/README.md`**). **`build_data.py`** prepends **`web/`** to **`sys.path`** before the repo root so **`web/simulations`** is imported reliably.
-
 ### Running the FinRL pipeline
 
 There is no long-running server to start. The core workflow is: **download data → feature engineer → build gym env → train DRL agent → test/trade**.
