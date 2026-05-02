@@ -4,14 +4,14 @@ Interactive charts use [Chart.js](https://www.chartjs.org/) (CDN) and load serie
 
 ## Contents
 
-| File | Role |
-|------|------|
-| `index.html` | Page shell |
-| `app.js` | Fetches `data.json`, renders charts |
-| `build_data.py` | CLI: downloads data, runs backtest, writes `data.json` (optional `preview.png`) |
-| `sma_backtest.py` | SMA crossover simulation |
-| `sma_chart_payload.py` | JSON shape for Chart.js |
-| `data.sample.json` | Example payload shape |
+| File                   | Role                                                                            |
+| ---------------------- | ------------------------------------------------------------------------------- |
+| `index.html`           | Page shell                                                                      |
+| `app.js`               | Fetches `data.json`, renders charts                                             |
+| `build_data.py`        | CLI: downloads data, runs backtest, writes `data.json` (optional `preview.png`) |
+| `sma_backtest.py`      | SMA crossover simulation                                                        |
+| `sma_chart_payload.py` | JSON shape for Chart.js                                                         |
+| `data.sample.json`     | Example payload shape                                                           |
 
 ## 1. Generate `data.json`
 
@@ -32,10 +32,11 @@ cd web
 python -m http.server 8765
 ```
 
-Open **http://localhost:8765**
+Open **[http://localhost:8765](http://localhost:8765)**
 
 ## Notes
 
 - FinRL writes training/backtest artifacts under **`results/`** at repo root (`RESULTS_DIR` in `finrl/config.py`); that folder is **not tracked** in git.
 - **`data.json`** is gitignored (regenerate locally).
 - Chart.js loads from jsDelivr; offline use requires vendoring Chart.js under `web/vendor/`.
+
