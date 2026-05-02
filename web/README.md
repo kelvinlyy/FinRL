@@ -36,5 +36,6 @@ Open **http://localhost:8765**
 
 ## Notes
 
+- FinRL writes training/backtest artifacts under **`results/`** at repo root (`RESULTS_DIR` in `finrl/config.py`); that folder is **not tracked** in git.
 - **`data.json`** is gitignored (regenerate locally).
 - Chart.js loads from jsDelivr; offline use requires vendoring Chart.js under `web/vendor/`.

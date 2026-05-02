@@ -1,9 +1,7 @@
 # Custom config
 
-# FinRL run outputs (keep results/README.md + results/.gitkeep only)
-results/**
-!results/.gitkeep
-!results/README.md
+# FinRL runtime outputs (created by scripts; do not commit)
+results/
 
 # remove DS_Store
 **/.DS_Store
