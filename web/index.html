@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>SMA crossover charts</title>
+  <title>Rule strategy charts</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
   <style>
     :root {
@@ -27,6 +27,32 @@
       font-size: 0.85rem;
       color: #8b949e;
     }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.75rem 1.25rem;
+      margin-bottom: 1rem;
+      padding: 0.6rem 0.75rem;
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+    }
+    .toolbar label {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.875rem;
+      color: #c9d1d9;
+    }
+    select {
+      background: #0d1117;
+      color: #e6edf3;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 0.35rem 0.5rem;
+      font-size: 0.875rem;
+    }
     .panel {
       background: #161b22;
       border: 1px solid #30363d;
@@ -39,19 +65,39 @@
       margin: 0 0 0.5rem;
       color: #58a6ff;
     }
+    .panel.hidden {
+      display: none;
+    }
     canvas {
       max-height: 380px;
+    }
+    #chartMacdWrap canvas {
+      max-height: 220px;
     }
   </style>
 </head>
 <body>
-  <h1 id="page-title">SMA crossover charts</h1>
+  <h1 id="page-title">Rule strategy charts</h1>
   <p id="page-meta" class="meta">
-    Hover for values; click legend entries to show/hide series. Serve via HTTP so data.json loads (see README).
+    Loading…
   </p>
+  <div class="toolbar" id="toolbar" hidden>
+    <label>
+      Strategy model
+      <select id="strategy-select" aria-label="Strategy model"></select>
+    </label>
+    <label>
+      <input type="checkbox" id="compare-all" />
+      Compare all models on performance chart
+    </label>
+  </div>
   <div class="panel">
-    <h2>Price &amp; moving averages</h2>
-    <canvas id="chartPrice" aria-label="Price and SMA"></canvas>
+    <h2 id="price-heading">Price &amp; overlays</h2>
+    <canvas id="chartPrice" aria-label="Price chart"></canvas>
+  </div>
+  <div class="panel hidden" id="chartMacdWrap">
+    <h2>MACD</h2>
+    <canvas id="chartMacd" aria-label="MACD chart"></canvas>
   </div>
   <div class="panel">
     <h2>Portfolio performance</h2>

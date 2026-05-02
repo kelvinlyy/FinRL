@@ -1,11 +1,11 @@
-"""SMA crossover backtest (long-only) using FinRL YahooDownloader output."""
+"""SMA crossover strategy simulation (long-only) on FinRL YahooDownloader output."""
 
 from __future__ import annotations
 
 import pandas as pd
 
 
-def run_backtest(
+def simulate_sma_crossover(
     df: pd.DataFrame,
     short_window: int = 20,
     long_window: int = 50,

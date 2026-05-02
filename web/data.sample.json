@@ -1,29 +1,48 @@
 {
   "meta": {
-    "title": "AAPL SMA 20/50 — 2023-01-01 to 2023-06-01",
-    "note": "Hover for values; click legend entries to show/hide series.",
+    "title": "AAPL — rule strategies",
+    "note": "Pick a strategy or compare all.",
     "ticker": "AAPL",
     "start": "2023-01-01",
     "end": "2023-06-01",
-    "short_window": 20,
-    "long_window": 50
+    "strategy_ids": ["sma_crossover", "macd_crossover"],
+    "params": {
+      "sma_short": 20,
+      "sma_long": 50,
+      "macd_fast": 12,
+      "macd_slow": 26,
+      "macd_signal": 9
+    }
   },
-  "chart": {
+  "shared": {
     "labels": ["2023-01-03", "2023-01-04"],
     "close": [125.5, 126.2],
-    "portfolio_value": [100000.0, 100050.0],
-    "buy_hold_value": [100000.0, 100057.57],
-    "sma_series": [
-      {
-        "key": "sma_20",
-        "label": "SMA 20",
-        "data": [null, null]
-      },
-      {
-        "key": "sma_50",
-        "label": "SMA 50",
-        "data": [null, null]
-      }
-    ]
+    "buy_hold_value": [100000.0, 100057.57]
+  },
+  "strategies": {
+    "sma_crossover": {
+      "label": "SMA crossover",
+      "portfolio_value": [100000.0, 100050.0],
+      "overlay_series": [
+        {
+          "key": "sma_20",
+          "label": "SMA 20",
+          "chart": "price",
+          "data": [null, null]
+        }
+      ]
+    },
+    "macd_crossover": {
+      "label": "MACD crossover",
+      "portfolio_value": [100000.0, 100030.0],
+      "overlay_series": [
+        {
+          "key": "macd_line",
+          "label": "MACD",
+          "chart": "macd",
+          "data": [0.1, 0.12]
+        }
+      ]
+    }
   }
 }
